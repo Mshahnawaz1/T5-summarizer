@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Text Summarizer</title>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#f97316" />
+    <meta name="description" content="Text summarization application" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Text Summarizer" />
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            backgroundImage: {
+              "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+            },
+          },
+        },
+      };
+    </script>
+    <style type="text/tailwindcss">
+      @layer utilities {
+        .bg-gradient-custom {
+          @apply bg-gradient-to-br from-orange-500 via-orange-600 to-red-500;
+        }
+        .dark .bg-gradient-custom {
+          @apply bg-gradient-to-br from-orange-600 via-orange-700 to-red-700;
+        }
+        .bg-grid-light {
+          background-image: linear-gradient(to right, #c7c9cb 1px, transparent 1px),
+                           linear-gradient(to bottom, #999ca1 1px, transparent 1px);
+          background-size: 50px 50px;
+        }
+        .bg-grid-dark {
+          background-image: linear-gradient(to right, rgba(60, 106, 170, 0.3) 1px, transparent 1px),
+                           linear-gradient(to bottom, rgba(40, 130, 255, 0.3) 1px, transparent 1px);
+          background-size: 50px 50px;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col transition-colors duration-300 bg-grid-light dark:bg-grid-dark"
+  >
+    <!-- Header with hamburger menu and logo -->
+    <header class="bg-white dark:bg-gray-800 shadow-md w-full transition-colors duration-300">
+      <div class="container mx-auto px-4 py-3">
+        <div class="flex justify-between items-center">
+          <!-- Hamburger Menu Button -->
+          <button id="menu-button" class="p-2 focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-orange-500 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          
+          <!-- App Title (Center) -->
+          <h1 class="text-xl font-bold text-gray-800 dark:text-white">
+            Text Summarizer
+          </h1>
+          
+          <!-- Logo (Right) -->
+          <div class="bg-gradient-custom text-white p-2 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          
+          <!-- Hidden Menu (initially hidden) -->
+          <div id="mobile-menu" class="fixed inset-0 bg-gray-800 bg-opacity-75 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="bg-white dark:bg-gray-800 h-full w-64 shadow-lg p-5">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800 dark:text-white">Menu</h2>
+                <button id="close-menu" class="p-2 focus:outline-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <nav>
+                <ul class="space-y-3">
+                  <li><a href="#" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Home</a></li>
+                  <li><a href="#" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">About</a></li>
+                  <li><a href="#" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Features</a></li>
+                  <li><a href="#" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Contact</a></li>
+                </ul>
+              </nav>
+              
+              <!-- Theme toggle in menu -->
+              <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex items-center">
+                  <span class="text-gray-700 dark:text-gray-300 mr-3">Theme:</span>
+                  <button id="theme-toggle-menu" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 focus:outline-none transition-colors duration-300">
+                    <!-- Sun Icon (Light Mode) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <!-- Moon Icon (Dark Mode) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center p-4">
+      <div
+        class="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden transition-colors duration-300"
+      >
+        <div class="relative p-8">
+          <!-- Theme Toggle Button -->
+          <div class="absolute right-8 top-8">
+            <button
+              id="theme-toggle"
+              class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 focus:outline-none transition-colors duration-300"
+            >
+              <!-- Sun Icon (Light Mode) -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-yellow-500 hidden dark:block"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+              <!-- Moon Icon (Dark Mode) -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6 text-gray-700 block dark:hidden"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <div class="flex items-center mb-6">
+            <div class="bg-gradient-custom text-white p-3 rounded-lg mr-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-3xl font-bold text-gray-800 dark:text-white">
+                Text Summarizer
+              </h1>
+              <p class="text-gray-600 dark:text-gray-300">
+                Simplify your content with AI-powered summaries
+              </p>
+            </div>
+          </div>
+
+        <form action="/summarize" method="POST" class="space-y-6">
+          <div>
+            <label
+              for="text"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >Your Text</label
+            >
+            <textarea
+              id="text"
+              name="text"
+              rows="8"
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none transition-colors duration-300"
+              placeholder="Paste your text here..."
+              required
+            >
+{% if original_text %}{{ original_text }}{% endif %}</textarea
+            >
+          </div>
+          <div>
+            <button
+              type="submit"
+              class="w-full bg-gradient-custom text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center hover:opacity-90"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M4 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9 1a1 1 0 10-2 0v6.586l-2.293-2.293a1 1 0 10-1.414 1.414l4 4a1 1 0 001.414 0l4-4a1 1 0 00-1.414-1.414L13 12.586V6z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Generate Summary
+            </button>
+          </div>
+        </form>
+
+        <!-- Summary Result Section - Only shown after form submission -->
+        {% if show_result %}
+        <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-600">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
+              Summary Result
+            </h2>
+            
+            <button
+              id="copy-btn"
+              class="bg-gradient-custom text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center hover:opacity-90"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                />
+              </svg>
+              Copy
+            </button>
+          </div>
+
+          <div
+            class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600 mb-4"
+          >
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+              {{ summary }}
+            </p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div
+        class="bg-gray-50 dark:bg-gray-700 px-8 py-6 border-t border-gray-200 dark:border-gray-600 transition-colors duration-300"
+      >
+        <p class="text-sm text-gray-600 dark:text-gray-300">
+          This tool helps you create concise summaries from lengthy texts.
+          Perfect for articles, reports, and documents.
+        </p>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+
+    <!-- Copy to clipboard functionality -->
+    {% if show_result %}
+    <script>
+      document
+        .getElementById("copy-btn")
+        .addEventListener("click", function () {
+          const summaryText = document.querySelector(
+            ".bg-gray-50.dark\\:bg-gray-700 p"
+          ).textContent;
+
+          navigator.clipboard
+            .writeText(summaryText)
+            .then(() => {
+              // Show feedback
+              const originalText = this.innerHTML;
+              this.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied!
+                    `;
+
+              // Reset button after 2 seconds
+              setTimeout(() => {
+                this.innerHTML = originalText;
+              }, 2000);
+            })
+            .catch((err) => {
+              console.error("Could not copy text: ", err);
+              alert("Failed to copy text. Please try again.");
+            });
+        });
+    </script>
+    {% endif %}
+    
+    <!-- PWA Service Worker Registration -->
+    <script src="{{ url_for('static', filename='pwa.js') }}"></script>
+  </body>
+</html>

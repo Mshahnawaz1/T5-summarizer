@@ -56,7 +56,6 @@ class Summarizer:
     
 
 if __name__ == "__main__":
-    from text import text
     summarizer = Summarizer()
     while True:
         input_text = input("Enter text to summarize (or 'exit' to quit): ")
